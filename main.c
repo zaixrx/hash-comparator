@@ -7,9 +7,14 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
-#define UNREACHABLE(...) \
+#define ERROR(...) \
 	do { \
 		fprintf(stderr, __VA_ARGS__); \
+	} while(0)
+
+#define ERROR_OUT(...) \
+	do { \
+		ERROR(__VA_ARGS__); \
 		exit(69); \
 	} while(0)
 
@@ -36,7 +41,7 @@ bool cmp_hash(unsigned char *string, char *hashed, HashFn fn) {
 	switch (fn) {
 		case HASH_SHA1: {
 			hash_size = SHA_DIGEST_LENGTH;
-			Hash hash = malloc(hash_size);
+			hash = malloc(hash_size);
 			SHA1(string, strlen((char*)string), hash);
 		} break;
 		case HASH_MD5: {
@@ -50,7 +55,7 @@ bool cmp_hash(unsigned char *string, char *hashed, HashFn fn) {
 			SHA256(string, strlen((char*)string), hash);
 		} break;
 		default: {
-			UNREACHABLE("invalid hash function");
+			ERROR_OUT("invalid hash function");
 		}
 	}
 
@@ -74,8 +79,7 @@ typedef struct {
 Args read_args(int argc, char **argv) {
 	if (argc < 3) {
 	error:
-		fprintf(stderr, "usage: %s <plain_src_path> <hashed> <SHA1 | SHA256 | MD5>(SHA1)\n", argv[0]);
-		exit(69);
+		ERROR_OUT("usage: %s <plain_src_path> <hashed> <SHA1 | SHA256 | MD5>(SHA1)\n", argv[0]);
 	}
 	HashFn fn = HASH_SHA1;
 	if (argc > 3) {
@@ -87,7 +91,7 @@ Args read_args(int argc, char **argv) {
 		} else if (strcmp(fn_str, "MD5") == 0) {
 			fn = HASH_MD5;
 		} else {
-			fprintf(stderr, "invalid hash function, got %s\n", fn_str); 
+			ERROR("invalid hash function, got %s\n", fn_str); 
 			goto error;
 		}
 	}
@@ -104,6 +108,9 @@ static unsigned char buffer[BUFFER_SIZE];
 int main(int argc, char **argv) {
 	Args args = read_args(argc, argv);
 	FILE *stream = fopen(args.plain_src_path, "rb+");
+	if (!stream) {
+		ERROR_OUT("failed to open file: %s\n", args.plain_src_path);
+	}
 	unsigned char *result = NULL;
 	for (;;) {
 		memset(buffer, '\0', BUFFER_SIZE);
@@ -117,7 +124,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	fclose(stream);
-	if (result) {
+	if (!result) {
 		printf("Found it: %s\n", result);
 	} else {
 		printf("Couldn't find it!\n");
