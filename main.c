@@ -35,7 +35,7 @@ char *get_str_from_hash(Hash hash, size_t hash_size) {
 	return __hash_str__;
 }
 
-bool cmp_hash(unsigned char *string, char *hashed, HashFn fn) {
+bool cmp_hash(unsigned char *string, char *target_hash_hex, HashFn fn) {
 	Hash hash = NULL;
 	size_t hash_size = 0;
 	switch (fn) {
@@ -58,16 +58,9 @@ bool cmp_hash(unsigned char *string, char *hashed, HashFn fn) {
 			ERROR_OUT("invalid hash function");
 		}
 	}
-
 	char *hash_hex = get_str_from_hash(hash, hash_size);
-
-	bool ret = false;
-	if (strcmp(hashed, hash_hex) == 0) {
-		ret = true;
-	}
-
 	free(hash);
-	return ret;
+	return strcmp(target_hash_hex, hash_hex) == 0;
 }
 
 typedef struct {
@@ -124,7 +117,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	fclose(stream);
-	if (!result) {
+	if (result) {
 		printf("Found it: %s\n", result);
 	} else {
 		printf("Couldn't find it!\n");
